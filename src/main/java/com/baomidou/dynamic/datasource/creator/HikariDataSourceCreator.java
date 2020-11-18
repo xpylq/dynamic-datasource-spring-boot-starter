@@ -26,6 +26,8 @@ import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 
+import static com.baomidou.dynamic.datasource.support.DdConstants.HIKARI_DATASOURCE;
+
 /**
  * Hikari数据源创建器
  *
@@ -34,11 +36,26 @@ import javax.sql.DataSource;
  */
 @Data
 @AllArgsConstructor
-public class HikariDataSourceCreator {
+public class HikariDataSourceCreator extends AbstractDataSourceCreator implements DataSourceCreator {
+
+    private static Boolean hikariExists = false;
+
+    static {
+
+        try {
+            Class.forName(HIKARI_DATASOURCE);
+            hikariExists = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+    }
 
     private HikariCpConfig hikariCpConfig;
 
-    public DataSource createDataSource(DataSourceProperty dataSourceProperty) {
+    @Override
+    public DataSource createDataSource(DataSourceProperty dataSourceProperty, String publicKey) {
+        if (StringUtils.isEmpty(dataSourceProperty.getPublicKey())) {
+            dataSourceProperty.setPublicKey(publicKey);
+        }
         HikariConfig config = dataSourceProperty.getHikari().toHikariConfig(hikariCpConfig);
         config.setUsername(dataSourceProperty.getUsername());
         config.setPassword(dataSourceProperty.getPassword());
@@ -49,5 +66,12 @@ public class HikariDataSourceCreator {
             config.setDriverClassName(driverClassName);
         }
         return new HikariDataSource(config);
+    }
+
+
+    @Override
+    public boolean support(DataSourceProperty dataSourceProperty) {
+        Class<? extends DataSource> type = dataSourceProperty.getType();
+        return (type == null && hikariExists) || (type != null && HIKARI_DATASOURCE.equals(type.getName()));
     }
 }

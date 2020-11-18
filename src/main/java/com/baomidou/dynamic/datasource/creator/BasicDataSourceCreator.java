@@ -20,6 +20,7 @@ import com.baomidou.dynamic.datasource.exception.ErrorCreateDataSourceException;
 import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DataSourceProperty;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Method;
@@ -32,7 +33,7 @@ import java.lang.reflect.Method;
  */
 @Data
 @Slf4j
-public class BasicDataSourceCreator {
+public class BasicDataSourceCreator extends AbstractDataSourceCreator implements DataSourceCreator {
 
     private static Method createMethod;
     private static Method typeMethod;
@@ -75,9 +76,14 @@ public class BasicDataSourceCreator {
      * 创建基础数据源
      *
      * @param dataSourceProperty 数据源参数
+     * @param publicKey          解密公钥
      * @return 数据源
      */
-    public DataSource createDataSource(DataSourceProperty dataSourceProperty) {
+    @Override
+    public DataSource createDataSource(DataSourceProperty dataSourceProperty, String publicKey) {
+        if (StringUtils.isEmpty(dataSourceProperty.getPublicKey())) {
+            dataSourceProperty.setPublicKey(publicKey);
+        }
         try {
             Object o1 = createMethod.invoke(null);
             Object o2 = typeMethod.invoke(o1, dataSourceProperty.getType());
@@ -92,4 +98,8 @@ public class BasicDataSourceCreator {
         }
     }
 
+    @Override
+    public boolean support(DataSourceProperty dataSourceProperty) {
+        return true;
+    }
 }
